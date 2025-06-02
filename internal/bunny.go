@@ -24,6 +24,21 @@ type Items struct {
 	LogAnonymizationType          int      `json:"LogAnonymizationType"`
 }
 
+type IPGeoLocationInfo struct {
+	CountryCode      string `json:"CountryCode"`
+	Country          string `json:"Country"`
+	ASN              int    `json:"ASN"`
+	OrganizationName string `json:"OrganizationName"`
+	City             string `json:"City"`
+}
+
+type GeolocationInfo struct {
+	Country   string  `json:"Country"`
+	City      string  `json:"City"`
+	Latitude  float32 `json:"Latitude"`
+	Longitude float32 `json:"Longitude"`
+}
+
 type Record struct {
 	Id                    int                     `json:"Id"`
 	Type                  int                     `json:"Type"`
@@ -38,8 +53,8 @@ type Record struct {
 	Accelerated           bool                    `json:"Accelerated"`
 	AcceleratedPullZoneId int                     `json:"AcceleratedPullZoneId"`
 	LinkName              string                  `json:"LinkName"`
-	IPGeoLocationInfo     string                  `json:"IPGeoLocationInfo"`
-	GeolocationInfo       string                  `json:"GeolocationInfo"`
+	IPGeoLocationInfo     *IPGeoLocationInfo      `json:"IPGeoLocationInfo"`
+	GeolocationInfo       *GeolocationInfo        `json:"GeolocationInfo"`
 	MonitorStatus         int                     `json:"MonitorStatus"`
 	MonitorType           int                     `json:"MonitorType"`
 	GeolocationLatitude   float32                 `json:"GeolocationLatitude"`
