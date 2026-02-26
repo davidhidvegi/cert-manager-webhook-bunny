@@ -32,7 +32,7 @@ entries:
           - name: David Hidvegi
             email: david@hidvegi.xyz
       apiVersion: v1
-      appVersion: 1.0.2
+      appVersion: 1.0.3
       created: "2026-02-26T14:42:43.826423+01:00"
       description:
         A Helm chart for cert manager webhook solver for ACME DNS01 challenge
@@ -49,6 +49,6 @@ entries:
         - DNS01
       name: cert-manager-webhook-bunny
       urls:
-        - cert-manager-webhook-bunny-1.0.2.tgz
-      version: 1.0.2
+        - cert-manager-webhook-bunny-1.0.3.tgz
+      version: 1.0.3
 generated: "2025-01-25T01:26:24.676871+01:00"

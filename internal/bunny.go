@@ -38,8 +38,8 @@ type Record struct {
 	Accelerated           bool                    `json:"Accelerated"`
 	AcceleratedPullZoneId int                     `json:"AcceleratedPullZoneId"`
 	LinkName              string                  `json:"LinkName"`
-	IPGeoLocationInfo     []IPGeoLocationInfo     `json:"IPGeoLocationInfo"`
-	GeolocationInfo       []GeolocationInfo       `json:"GeolocationInfo"`
+	IPGeoLocationInfo     IPGeoLocationInfo     `json:"IPGeoLocationInfo"`
+	GeolocationInfo       GeolocationInfo       `json:"GeolocationInfo"`
 	MonitorStatus         int                     `json:"MonitorStatus"`
 	MonitorType           int                     `json:"MonitorType"`
 	GeolocationLatitude   float32                 `json:"GeolocationLatitude"`
