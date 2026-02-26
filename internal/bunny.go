@@ -38,8 +38,8 @@ type Record struct {
 	Accelerated           bool                    `json:"Accelerated"`
 	AcceleratedPullZoneId int                     `json:"AcceleratedPullZoneId"`
 	LinkName              string                  `json:"LinkName"`
-	IPGeoLocationInfo     string                  `json:"IPGeoLocationInfo"`
-	GeolocationInfo       string                  `json:"GeolocationInfo"`
+	IPGeoLocationInfo     []IPGeoLocationInfo     `json:"IPGeoLocationInfo"`
+	GeolocationInfo       []GeolocationInfo       `json:"GeolocationInfo"`
 	MonitorStatus         int                     `json:"MonitorStatus"`
 	MonitorType           int                     `json:"MonitorType"`
 	GeolocationLatitude   float32                 `json:"GeolocationLatitude"`
@@ -49,6 +49,21 @@ type Record struct {
 	SmartRoutingType      int                     `json:"SmartRoutingType"`
 	Disabled              bool                    `json:"Disabled"`
 	Comment               string                  `json:"Comment"`
+}
+
+type IPGeoLocationInfo struct {
+	CountryCode  string `json:"CountryCode"`
+	Country string `json:"Country"`
+	ASN int `json:"ASN"`
+	OrganizationName string `json:"OrganizationName"`
+	City string `json:"City"`
+}
+
+type GeolocationInfo struct {
+	Country  string `json:"Country"`
+	City string `json:"City"`
+	Latitude int `json:"Latitude"`
+	Longitude int `json:"Longitude"`
 }
 
 type EnviromentalVariables struct {
