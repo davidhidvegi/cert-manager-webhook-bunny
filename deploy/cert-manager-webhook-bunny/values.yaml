@@ -16,7 +16,7 @@ certManager:
 image:
   repository: ghcr.io/davidhidvegi/cert-manager-webhook-bunny
   # set version here for upcoming release
-  tag: 1.0.1
+  tag: 1.0.2
   # sha hash can be used to specify image version, instead of tag
   hash: ""
   pullPolicy: IfNotPresent
@@ -28,8 +28,7 @@ service:
   type: ClusterIP
   port: 443
 
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
