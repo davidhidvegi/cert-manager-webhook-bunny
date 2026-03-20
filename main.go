@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -118,15 +117,13 @@ func (n *bunnyDNSProviderSolver) getConfig(ch *v1alpha1.ChallengeRequest) (*bunn
 }
 
 func addTxtRecord(cfg *bunnyClientConfig, resolvedFqdn string, key string) error {
-	zones, host, getErr := getZonesAndHost(resolvedFqdn, cfg)
+	zone, host, getErr := getZoneAndHost(resolvedFqdn, cfg)
 	if getErr != nil {
 		return getErr
 	}
 
-	// Create a new TXT record
-	zoneId := zones.Items[0].Id
-	zoneIdStr := fmt.Sprintf("%d", zoneId)
-	urlOfRecords := "https://api.bunny.net/dnszone/" + zoneIdStr + "/records"
+	zoneID := fmt.Sprintf("%d", zone.Id)
+	urlOfRecords := "https://api.bunny.net/dnszone/" + zoneID + "/records"
 
 	payload := strings.NewReader("{\"Type\":3,\"Ttl\":120,\"Value\":\"" + key + "\",\"Name\":\"" + host + "\"}")
 
@@ -144,16 +141,14 @@ func addTxtRecord(cfg *bunnyClientConfig, resolvedFqdn string, key string) error
 }
 
 func deleteTxtRecord(cfg *bunnyClientConfig, resolvedFqdn string, key string) error {
-	zones, host, getErr := getZonesAndHost(resolvedFqdn, cfg)
+	zone, host, getErr := getZoneAndHost(resolvedFqdn, cfg)
 	if getErr != nil {
 		return getErr
 	}
 
-	// Find the TXT record and delete it
-	for _, record := range zones.Items[0].Records {
-		if record.Value == key && record.Type == 3 && record.Name == host { // Type 3 is TXT record
-			// Delete the record
-			urlOfRecords := "https://api.bunny.net/dnszone/" + fmt.Sprintf("%d", zones.Items[0].Id) + "/records/" + fmt.Sprintf("%d", record.Id)
+	for _, record := range zone.Records {
+		if record.Value == key && record.Type == 3 && record.Name == host {
+			urlOfRecords := "https://api.bunny.net/dnszone/" + fmt.Sprintf("%d", zone.Id) + "/records/" + fmt.Sprintf("%d", record.Id)
 			_, deleteResErr := callDnsApi(urlOfRecords, "DELETE", nil, cfg)
 			if deleteResErr != nil {
 				return fmt.Errorf("Failed to delete record: %v", deleteResErr)
@@ -164,31 +159,57 @@ func deleteTxtRecord(cfg *bunnyClientConfig, resolvedFqdn string, key string) er
 	return nil
 }
 
-func getZonesAndHost(resolvedFqdn string, cfg *bunnyClientConfig) (internal.ZoneResponse, string, error) {
-	rePattern := regexp.MustCompile(`^(.+)\.(([^\.]+)\.([^\.]+))\.$`)
-	match := rePattern.FindStringSubmatch(resolvedFqdn)
-	if match == nil {
-		return internal.ZoneResponse{}, "", fmt.Errorf("unable to parse host/domain out of resolved FQDN ('%s')", resolvedFqdn)
-	}
-	host := match[1]   // something like "_acme-challenge"
-	domain := match[2] // something like "example.com"
+func getZoneAndHost(resolvedFqdn string, cfg *bunnyClientConfig) (internal.Items, string, error) {
+	return findZoneAndHost(resolvedFqdn, func(domain string) (internal.ZoneResponse, error) {
+		return getZonesBySearch(domain, cfg)
+	})
+}
 
+func findZoneAndHost(resolvedFqdn string, lookup func(string) (internal.ZoneResponse, error)) (internal.Items, string, error) {
+	labels, err := splitResolvedFQDN(resolvedFqdn)
+	if err != nil {
+		return internal.Items{}, "", err
+	}
+
+	for i := 1; i <= len(labels)-2; i++ {
+		domain := strings.Join(labels[i:], ".")
+		zones, lookupErr := lookup(domain)
+		if lookupErr != nil {
+			return internal.Items{}, "", fmt.Errorf("failed to request zones for %q: %v", domain, lookupErr)
+		}
+		for _, zone := range zones.Items {
+			if strings.EqualFold(strings.TrimSuffix(zone.Domain, "."), domain) {
+				return zone, strings.Join(labels[:i], "."), nil
+			}
+		}
+	}
+
+	return internal.Items{}, "", fmt.Errorf("unable to find a matching Bunny zone for resolved FQDN %q", resolvedFqdn)
+}
+
+func splitResolvedFQDN(resolvedFqdn string) ([]string, error) {
+	trimmed := strings.TrimSuffix(strings.TrimSpace(resolvedFqdn), ".")
+	labels := strings.Split(trimmed, ".")
+	if len(labels) < 3 {
+		return nil, fmt.Errorf("unable to parse host/domain out of resolved FQDN %q", resolvedFqdn)
+	}
+	return labels, nil
+}
+
+func getZonesBySearch(domain string, cfg *bunnyClientConfig) (internal.ZoneResponse, error) {
 	urlOfDnsZones := "https://api.bunny.net/dnszone?page=1&perPage=1000&search=" + domain
 
 	getResBody, getResErr := callDnsApi(urlOfDnsZones, "GET", nil, cfg)
 	if getResErr != nil {
-		return internal.ZoneResponse{}, "", fmt.Errorf("Failed to request zones: %v", getResErr)
+		return internal.ZoneResponse{}, fmt.Errorf("Failed to request zones: %v", getResErr)
 	}
 
 	zones := internal.ZoneResponse{}
 	zonesReadErr := json.Unmarshal(getResBody, &zones)
 	if zonesReadErr != nil {
-		return internal.ZoneResponse{}, "", fmt.Errorf("Unable to unmarshal response: %v", zonesReadErr)
+		return internal.ZoneResponse{}, fmt.Errorf("Unable to unmarshal response: %v", zonesReadErr)
 	}
-	if zones.TotalItems != 1 {
-		return internal.ZoneResponse{}, "", fmt.Errorf("wrong number of zones in response %d must be exactly = 1", zones.TotalItems)
-	}
-	return zones, host, nil
+	return zones, nil
 }
 
 func callDnsApi(url, method string, body io.Reader, cfg *bunnyClientConfig) ([]byte, error) {
